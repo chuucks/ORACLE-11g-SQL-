@@ -74,3 +74,4 @@ FOR EACH ROW
 -----------------------------
 --Confirmación de transacción
 -----------------------------
+COMMIT;
