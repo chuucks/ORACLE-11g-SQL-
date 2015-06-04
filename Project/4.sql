@@ -71,6 +71,26 @@ FOR EACH ROW
   UPDATE POLIZA SET siniestros_ocurridos = siniestros_ocurridos+1 WHERE poliza_id = V_ID;
   END;
 
+------------
+--Trigger 4
+-----------
+create or replace
+TRIGGER SINIESTRO2_TRIGGER
+  AFTER INSERT OR UPDATE OF ESTADO_SINIESTRO_ID ON SINIESTRO     
+FOR EACH ROW
+  DECLARE
+   V_SINIESTRO_ID NUMBER(10,0);
+  V_ESTADO_ID_VIEJO NUMBER(10,0);
+  V_ESTADO_ID_NUEVO NUMBER(10,0);
+  BEGIN
+  V_SINIESTRO_ID := :NEW.SINIESTRO_ID;
+  V_ESTADO_ID_VIEJO := :OLD.ESTADO_SINIESTRO_ID;
+  V_ESTADO_ID_NUEVO := :NEW.ESTADO_SINIESTRO_ID;
+    IF v_estado_id_nuevo < v_estado_id_viejo AND V_ESTADO_ID_NUEVO <> 4 then
+      dbms_output.put_line('Error, el nuevo estado del siniestro se ha cambiado a uno anterior');
+    END IF;
+  END;
+
 -----------------------------
 --Confirmación de transacción
 -----------------------------
