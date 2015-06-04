@@ -77,9 +77,9 @@ BEGIN
   commit;
 END PROCEDURE_TARJETA;
 
------------------------------------------
---Script anonimo para el  proceso negocio
------------------------------------------
+-------------------------------------
+--Script anonimo para proceso negocio
+-------------------------------------
 DECLARE
 V_COTI_ID NUMBER(5,0);
 V_PRECIO NUMBER(4,0) :=0;
@@ -106,6 +106,25 @@ FROM estado_siniestro ES;
 v_estado_siniestro_id ESTADO_SINIESTRO.ESTADO_SINIESTRO_ID%TYPE;
 v_clave ESTADO_SINIESTRO.CLAVE%TYPE;
 v_descripcion ESTADO_SINIESTRO.DESCRIPCION%TYPE;
+
+--DECLARACION DE CURSOR 2
+CURSOR infoMarcas IS
+SELECT MA.DESCRIPCION, COUNT(S.SINIESTRO_ID) TOTAL_SINIESTROS, count(SM.siniestro_id) MATERIAL, COUNT(SS.siniestro_id) SOCIAL, COUNT(SC.siniestro_id) COLISION 
+FROM marca_auto MA 
+JOIN cotizacion C ON C.marca_auto_id = ma.marca_auto_id 
+JOIN CLIENTE CL ON CL.cliente_id = c.cliente_id 
+JOIN POLIZA P ON P.cliente_id = cl.cliente_id 
+JOIN SINIESTRO S ON S.poliza_id = P.poliza_id 
+LEFT OUTER JOIN siniestro_material SM ON sm.siniestro_id = s.siniestro_id 
+LEFT OUTER JOIN siniestro_social SS ON SS.siniestro_id = S.siniestro_id 
+LEFT OUTER JOIN siniestro_colision SC ON SC.siniestro_id = s.siniestro_id 
+GROUP BY MA.descripcion;
+--VARIABLES DEL CURSOR 2
+V_DESCRIPCION2 MARCA_AUTO.DESCRIPCION%TYPE;
+V_TOTAL_SINIESTROS NUMBER(10,0);
+V_TOTAL_MATERIAL NUMBER(10,0);
+V_TOTAL_SOCIAL NUMBER(10,0);
+V_TOTAL_COLISION NUMBER(10,0);
 
 BEGIN
   SELECT COTIZACION_SEQ.NEXTVAL INTO V_COTI_ID FROM DUAL;
@@ -160,7 +179,7 @@ BEGIN
   ELSE 
      V_PRECIO := V_PRECIO+300;
   END IF;
---FIN DE CALCULO DE LA COTIZACION--------------------------------------------------------------
+  --FIN DE CALCULO DE LA COTIZACION--------------------------------------------------------------
   UPDATE COTIZACION SET COSTO = V_PRECIO WHERE COTIZACION_ID=V_COTI_ID; --AGREGAMOS LA COTIZACION CALCULADA
   --v_deseo_contratar :='&designation'; -- Esta sentencia significa v_deseo_contratar = 'S' p.ej.
   v_deseo_contratar :='S';--Evitamos que pregunte si quiere la poliza
@@ -234,12 +253,24 @@ BEGIN
               dbms_output.put_line(v_estado_siniestro_id||' , '||v_clave||' , '||v_descripcion);
               END LOOP;
               CLOSE infoEstados;
+              
+              OPEN infoMarcas;
+              dbms_output.put_line('INFORMACION SOBRE LOS SINIESTROS QUE HAN TENIDO LOS DIFERENTES TIPOS DE MARCAS');
+              dbms_output.put_line('DESCRIPCION TOTAL_SINIESTROS  MATERIAL  SOCIAL  COLISION');
+              LOOP
+              FETCH infoMarcas INTO V_DESCRIPCION2,V_TOTAL_SINIESTROS,V_TOTAL_MATERIAL,V_TOTAL_SOCIAL,V_TOTAL_COLISION;
+              EXIT WHEN infoMarcas%NOTFOUND;
+              dbms_output.put_line(V_DESCRIPCION2||CHR(9)||V_TOTAL_SINIESTROS||CHR(9)||V_TOTAL_MATERIAL||
+              CHR(9)||V_TOTAL_SOCIAL||CHR(9)||V_TOTAL_COLISION);
+              END LOOP;
+              CLOSE infoMarcas;
+              
             END;
           ELSE
             dbms_output.put_line('El pago no se ha podido realizar, vuelve despues');
             DELETE FROM COTIZACION WHERE COTIZACION_ID = V_COTI_ID; --Si el pago no es aceptado, se elimina su cotizacion y sus datos personales
             DELETE FROM cliente WHERE CLIENTE_ID = v_CLIENTE_ID;
-            DELETE FROM TARJaETA_CLIENTE WHERE TARJETA_CLIENTE_ID = V_TARJETA_CLIENTE_ID;
+            DELETE FROM TARJETA_CLIENTE WHERE TARJETA_CLIENTE_ID = V_TARJETA_CLIENTE_ID;
           END IF;
     END;
     
